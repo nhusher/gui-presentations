@@ -1,0 +1,6 @@
+[submodule "promises/extensions/codemirror"]
+	path = promises/extensions/codemirror
+	url = https://github.com/iros/deck.js-codemirror.git
+[submodule "deckjs/extensions/codemirror"]
+	path = deckjs/extensions/codemirror
+	url = https://github.com/iros/deck.js-codemirror.git

@@ -1,0 +1,129 @@
+
+var Promise = function(resolverFunction) {
+    var _callback,
+        _errorback;
+    
+    if(!(this instanceof Promise)) {
+        return new Promise(resolverFunction);
+    }
+    
+    function fulfill(value) {
+        if(_callback) {
+            _callback(value);
+        }
+        
+        _callback  = null;
+        _errorback = null;
+    }
+    
+    function reject(reason) {
+        if(_errorback) {
+            _errorback(reason);
+        }
+        
+        _callback  = null;
+        _errorback = null;
+    }
+    
+    this.then = function(callback, errorback) {
+        var doFulfill,
+            doReject,
+
+            chain = new SimplePromise(function(fulfill, reject) {
+                _chainFulfill = fulfill;
+                _chainReject  = reject;
+            });
+        
+        if(typeof callback === 'function') {
+            _callback = callback;
+        }
+        
+        if(typeof errorback === 'function') {
+            _errorback = errorback;
+        }
+        
+        return chain;
+    };
+    
+    resolverFunction.call(this, fulfill, reject);
+}
+
+function SimplePromise(resolverFunction) {
+    var _chainFulfill,
+        _chainReject,
+        _callback,
+        _errorback;
+    
+    if(!(this instanceof SimplePromise)) {
+        return new SimplePromise(resolverFunction);
+    }
+    
+    function fulfill(value) {
+        if(_callback) {
+            _callback(value);
+        }
+        
+        _callback  = null;
+        _errorback = null;
+    }
+    
+    function reject(reason) {
+        if(_errorback) {
+            _errorback(reason);
+        }
+        
+        _callback  = null;
+        _errorback = null;
+    }
+    
+    this.then = function(callback, errorback) {
+        var doFulfill,
+            doReject,
+
+            chain = new SimplePromise(function(fulfill, reject) {
+                _chainFulfill = fulfill;
+                _chainReject  = reject;
+            });
+        
+        if(typeof callback === 'function') {
+            _callback = callback;
+        }
+        
+        if(typeof errorback === 'function') {
+            _errorback = errorback;
+        }
+        
+        return chain;
+    };
+    
+    resolverFunction.call(this, fulfill, reject);
+}
+
+
+json('http://www.reddit.com/hot.json', function(response) {
+    var links = response.data.children;
+    
+    links.forEach(function(link) {
+        var permalink = link.data.permalink;
+        
+        console.log(permalink);
+    });
+
+    console.log("\n\n");
+});
+
+
+SimplePromise(function(fulfill, reject) {
+    json('http://www.reddit.com/hot.json', fulfill, reject);
+    
+}).then(function(results) {
+    var links = response.data.children;
+
+    links.forEach(function(link) {
+        var permalink = link.data.permalink;
+        
+        console.log(permalink);
+    });
+    
+    console.log("\n\n");
+});

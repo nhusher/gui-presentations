@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=1024, user-scalable=no">
+
+	<title>Promises, promises</title>
+	
+	<!-- Required stylesheet -->
+	<link rel="stylesheet" href="../deckjs/core/deck.core.css">
+	
+	<!-- Extension CSS files go here. Remove or add as needed. -->
+	<link rel="stylesheet" href="../deckjs/extensions/goto/deck.goto.css">
+	<link rel="stylesheet" href="../deckjs/extensions/menu/deck.menu.css">
+	<link rel="stylesheet" href="../deckjs/extensions/navigation/deck.navigation.css">
+	<link rel="stylesheet" href="../deckjs/extensions/status/deck.status.css">
+	<link rel="stylesheet" href="../deckjs/extensions/hash/deck.hash.css">
+	<link rel="stylesheet" href="../deckjs/extensions/scale/deck.scale.css">
+    <link rel="stylesheet" href="../deckjs/extensions/codemirror/deck.codemirror.css">
+    <link rel="stylesheet" href="../deckjs/extensions/codemirror/themes/default.css">
+    
+	<!-- Style theme. More available in /themes/style/ or create your own. -->
+	<link rel="stylesheet" href="../deckjs/themes/style/swiss.css">
+	
+	<!-- Transition theme. More available in /themes/transition/ or create your own. -->
+	<link rel="stylesheet" href="../deckjs/themes/transition/fade.css">
+	
+	<!-- Required Modernizr file -->
+	<script src="../deckjs/modernizr.custom.js"></script>
+</head>
+<body class="deck-container">
+
+<!-- Begin slides. Just make elements with a class of slide. -->
+<section class="slide">
+<h1>Promises, promises</h1>
+</section>
+
+<section class="slide">
+<h2>What's a promise?</h2>
+
+<ul>
+    <li class="slide">A wrapper around an asynchronously-generated value.</li>
+    <li class="slide">A tool to make deeply-asynchronous programming less painful.</li>
+    <li class="slide">Plumbing that makes it easier to express your program's <strong>intent</strong>.</li>
+    <li class="slide">
+        Object Oriented Programming : Functional Programming :: Events : Promises
+        <ul>
+            <li class="slide"><em>OOP:</em> behaviors on data.</li>
+            <li class="slide"><em>FP:</em> a chain of data transformations.</li>
+            <li class="slide"><em>Events:</em> data at moments of interest.</li>
+            <li class="slide"><em>Promises:</em> a chain of transformations across moments.</li>
+        </ul>
+    </li>
+</ul>
+
+</section>
+
+<section class="slide">
+<h2>No really, what's a promise?</h2>
+
+<pre class="slide">
+    [Promise].then (callback:function) => [Promise]
+</pre>
+
+<ul>
+    <li class="slide">It's an object that has a method <code>then</code></li>
+    <li class="slide">Where <code>then</code> takes a callback</li>
+    <li class="slide">And returns a promise <span class="slide">that will resolve after the callback function is executed <span class="slide">with the results of the callback function.</span></span></li>
+    <li class="slide">
+        But <span class="slide">if the callback function returns a promise <span class="slide">the subsequent callbacks won't be resolved until that promise is resolved.</span></span>
+    </li>
+    <li class="slide">Easy, right?</li>
+</ul>
+
+</section>
+
+<section class="slide">
+    <h1><img src="http://i.imgur.com/sdLEY.gif"></h1    >
+</section>
+
+<section class="slide">
+
+<h2>What about an example?</h2>
+
+<p class="slide">
+    Let's try to find out how active earthlings are on github.
+</p>
+<p class="slide">Turns out, Dealer.com has a <a href="https://github.com/DealerDotCom">github organization</a>, although there aren't very many DDC members.
+</p>
+<p class="slide">But let's see what we can find out anyway.</p>
+
+</section>
+
+<section class="slide">
+
+<h2>Example: Github activity</h2>
+    
+<script type="codemirror" data-selector="#simple-example" globals="githubUserData">
+function pad(str, size) {
+    var pad = Math.max(size - str.length + 1, 0);
+    return str + (new Array(pad).join('&nbsp;'));
+}
+function printToConsole(userList) { // We get a user list...
+    userList.sort(function (a, b) {
+        var aName = (a.name || a.login).toLowerCase(),
+            bName = (b.name || b.login).toLowerCase();
+
+        return (aName < bName) ? -1 : 1;
+    });
+
+    userList.forEach(function (user) {
+        var name  = pad( user.name || user.login,       25),
+            gists = pad( 'Gists: ' + user.public_gists, 15),
+            repos = 'Repos: ' + user.public_repos;
+
+        console.log(name + gists + repos);
+    });
+}
+
+function sortAlphabetically(unsortedUserList) {
+    var sortedUserList = unsortedUserList.sort(function (a, b) {
+        var aName = (a.name || a.login).toLowerCase(),
+            bName = (b.name || b.login).toLowerCase();
+
+        return (aName < bName) ? -1 : 1;
+    });
+
+    return sortedUserList; // pass this on to the next handler
+}
+
+function getListOfUsers(fulfill, reject) {
+    fulfill();
+}
+
+function getEachUsersInfo() {
+    return githubUserData;
+}
+</script>
+    
+<textarea id="simple-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
+Promise(getListOfUsers).     // Get users from github that are associated with Dealer.com.
+   then(getEachUsersInfo).   // Retrieve each user's profile from github.
+   then(printToConsole);     // Print out some information about them.
+</textarea>
+
+</section>
+
+<section class="slide">
+    <h2>Example: Github activity</h2>
+
+<script type="codemirror" data-selector="#expand-promise-example" globals="githubUserData">
+    function pad(str, size) {
+        var pad = Math.max(size - str.length + 1, 0);
+        return str + (new Array(pad).join('&nbsp;'));
+    }
+
+    function printToConsole(userList) { // We get a user list...
+        userList.sort(function (a, b) {
+            var aName = (a.name || a.login).toLowerCase(),
+                bName = (b.name || b.login).toLowerCase();
+
+            return (aName < bName) ? -1 : 1;
+        });
+    
+        userList.forEach(function (user) {
+            var name  = pad( user.name || user.login,       25),
+                gists = pad( 'Gists: ' + user.public_gists, 15),
+                repos = 'Repos: ' + user.public_repos;
+    
+            console.log(name + gists + repos);
+        });
+    }
+
+    function ajax(url, callback) {
+        callback(null, { status: 200, responseText: "[]" });
+    }
+
+    function getListOfUsers(fulfill, reject) {
+        fulfill();
+    }
+
+    function getEachUsersInfo() {
+        return githubUserData;
+    }
+</script>
+
+<textarea id="expand-promise-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
+Promise(function (fulfill) { // getListOfUsers
+    
+    // ajax is a wrapper for XMLHttpRequest
+    ajax(
+        // that takes a URL
+        "https://api.github.com/orgs/dealerdotcom/members",
+        
+        // and a callback
+        function (error, success) {
+            fulfill(JSON.parse(success.responseText));
+        }
+    );
+    
+}).
+then(getEachUsersInfo).
+then(printToConsole);
+</textarea>
+</section>
+
+<section class="slide">
+    <h2>Example: Github activity</h2>
+
+<script type="codemirror" data-selector="#expand-chain-example" globals="githubUserData">
+    function pad(str, size) {
+        var pad = Math.max(size - str.length + 1, 0);
+        return str + (new Array(pad).join('&nbsp;'));
+    }
+
+    function printToConsole(userList) { // We get a user list...
+        userList.sort(function (a, b) {
+            var aName = (a.name || a.login).toLowerCase(),
+                bName = (b.name || b.login).toLowerCase();
+
+            return (aName < bName) ? -1 : 1;
+        });
+    
+        userList.forEach(function (user) {
+            var name  = pad( user.name || user.login,       25),
+                gists = pad( 'Gists: ' + user.public_gists, 15),
+                repos = 'Repos: ' + user.public_repos;
+    
+            console.log(name + gists + repos);
+        });
+    }
+
+    function ajax(url, callback) {
+        var username = url.split('/').pop();
+        
+        var user = githubUserData.filter(function (user) { return user.login === username }).pop();
+        
+        callback(null, user);
+    }
+
+    function getListOfUsers(fulfill, reject) {
+        var userList = githubUserData.map(function (user) {
+            return { login: user.login };
+        });
+        fulfill(userList);
+    }
+
+</script>
+
+<p>This one is rough. Don't sweat it too much.</p>
+
+<textarea id="expand-chain-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
+Promise(getListOfUsers).
+then(function (members) { // getEachUsersInfo
+    return Promise(function (fulfill) {
+        var remainingUsers = members.length,
+            userInfo = [];
+
+        members.forEach(function (member) {
+            ajax(
+                'https://api.github.com/users/' + member.login,
+                
+                function (errors, result) {
+                    userInfo.push(result);
+                    remainingUsers -= 1;
+                        
+                    if(remainingUsers === 0) {
+                        fulfill(userInfo);
+                    }
+                }
+            );
+        });
+    });
+}).
+then(printToConsole);
+</textarea>
+</section>
+
+
+<section class="slide">
+    <h2>Example: Github activity</h2>
+
+<p>All together:</p>
+<textarea name="code" class="code" mode="javascript">
+Promise(function (fulfill) { // getListOfUsers
+    ajax(
+        "https://api.github.com/orgs/dealerdotcom/members",
+        function (error, success) {
+            fulfill(JSON.parse(success.responseText));
+        }
+    );
+}).
+then(function (members) { // getEachUsersInfo
+    return Promise(function (fulfill) {
+        var remainingUsers = members.length,
+            userInfo = [];
+
+        members.forEach(function (member) {
+            ajax(
+                'https://api.github.com/users/' + member.login,
+                function (errors, result) {
+                    userInfo.push(result);
+                    remainingUsers -= 1;
+                        
+                    if(remainingUsers === 0) {
+                        fulfill(userInfo);
+                    }
+                }
+            );
+        });
+    });
+}).
+then(printToConsole);
+</textarea>
+
+</section>
+
+<section class="slide">
+    <h1>
+        Good job Nick<br />
+        <span class="slide" style="font-size:70%">that saved us nothing</span>
+    </h1>
+</section>
+
+<section class="slide">
+<h2>Promises + Composition = &#10084;</h2>
+<p class="slide">A few general-use functions will make things much cleaner.</p>
+<p class="slide">A preview of what we'll end up with by adding two functions, <code>json</code> and <code>batch</code>:</p>
+
+<div class="slide">
+<textarea name="code" class="code" mode="javascript">
+// Get the list of users in the dealer.com org
+json('https://api.github.com/orgs/dealerdotcom/members').
+
+// Then, for each member, get their user info
+then(function (members) {
+
+    return batch(members.map(function (member) {
+        
+        return json('https://api.github.com/users/' + member.login);
+
+    }));
+}).
+
+// Print the results
+then(printToConsole);
+</textarea>
+</div>
+
+</section>
+
+<section class="slide">
+<h2><code>json</code></h2>
+<textarea name="code" id="json-example" class="code" mode="javascript" runnable="true" globals="Promise, ajax">
+// json wraps the ajax function and resolves with some JSON data.
+function json(url) {
+    return Promise(function (fulfill, reject) {
+        ajax(url, function (errors, result) {
+            errors ? reject(errors) : fulfill(JSON.parse(result.responseText));
+        });
+    });
+}
+
+// Example: eve-ship-comparator
+json("http://esc.nickol.us/api/item/24698").then(function (item) {
+    console.log(item.name + ': ' + item.description);
+});
+</textarea>
+
+</section>
+
+<section class="slide">
+<h2><code>batch</code></h2>
+
+<script type="codemirror" data-selector="#batch-example">
+function json(url) {
+    return Promise(function (fulfill, reject) {
+        ajax(url, function (errors, result) {
+            errors ? reject(errors) : fulfill(JSON.parse(result.responseText));
+        });
+    });
+}
+</script>
+<textarea name="code" id="batch-example" class="code" mode="javascript" runnable="true" globals="Promise, ajax">
+function batch(promises) {
+    return Promise(function (fulfill, reject) {
+        var leftToResolve = promises.length,
+            resultList = [];
+            
+        promises.forEach(function (promise, index) {
+            promise.then(function (result) {
+                resultList[index] = result;
+                leftToResolve -= 1;
+                if(leftToResolve === 0) {
+                    // All the promises have resolved
+                    fulfill(resultList);
+                }
+            }, reject);
+        });
+    });
+}
+
+// Example:
+batch([
+    json("http://esc.nickol.us/api/item/24698"),
+    json("http://esc.nickol.us/api/item/24700")
+
+]).then(function (results) {
+    console.log('Found', results[0].name, 'and', results[1].name);
+});
+</textarea>
+
+</section>
+
+
+<section class="slide">
+<h2>Example: Github activity</h2>
+
+
+<script type="codemirror" data-selector="#composed-example" globals="githubUserData">
+    function pad(str, size) {
+        var pad = Math.max(size - str.length + 1, 0);
+        return str + (new Array(pad).join('&nbsp;'));
+    }
+
+    function printToConsole(userList) { // We get a user list...
+        userList.sort(function (a, b) {
+            var aName = (a.name || a.login).toLowerCase(),
+                bName = (b.name || b.login).toLowerCase();
+
+            return (aName < bName) ? -1 : 1;
+        });
+    
+        userList.forEach(function (user) {
+            var name  = pad( user.name || user.login,       25),
+                gists = pad( 'Gists: ' + user.public_gists, 15),
+                repos = 'Repos: ' + user.public_repos;
+    
+            console.log(name + gists + repos);
+        });
+    }
+    
+    function batch(promises) {
+        return Promise(function (fulfill, reject) {
+            var leftToResolve = promises.length,
+                resultList = [];
+            
+            promises.forEach(function (promise, index) {
+                promise.then(function (result) {
+                    resultList[index] = result;
+                    leftToResolve -= 1;
+                    if(leftToResolve === 0) {
+                        // All the promises have resolved
+                        fulfill(resultList);
+                    }
+                }, reject);
+            });
+        });
+    }
+
+    function json(url) {
+        return Promise(function(fulfill) {
+            var username = url.split('/').pop();
+            
+            if(username === 'members') {
+                fulfill(githubUserData.map(function(user) { return { login: user.login }; }));
+            } else {
+                fulfill(githubUserData.filter(function(user) { return user.login === username }).pop());
+            }
+        })
+    }
+
+    function getListOfUsers(fulfill, reject) {
+        var userList = githubUserData.map(function (user) {
+            return { login: user.login };
+        });
+        fulfill(userList);
+    }
+
+</script>
+
+<textarea name="code" id="composed-example" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
+json('https://api.github.com/orgs/dealerdotcom/members').
+
+then(function (members) {
+    return batch(members.map(function (member) {
+        return json('https://api.github.com/users/' + member.login);
+    }));
+}).
+
+then(printToConsole);
+</textarea>
+</div>
+
+</section>
+
+<section class="slide">
+    <h2>The next step...</h2>
+    
+    <p>
+        How can we make it clearer what our intent is?
+    </p>
+    <p class="slide">
+        And reduce the amount of code we have to reason about?
+    </p>
+    
+    <div class="slide">
+<textarea name="code" class="code" mode="javascript">
+// Get some JSON from github
+json('https://api.github.com/orgs/dealerdotcom/members').
+
+// And I know it's going to be a list
+list().
+
+// Run map over the list
+map(function (member) {
+    return json('https://api.github.com/users/' + member.login);
+}).
+
+// Print each item
+map(print);
+</textarea>
+<p class="slide" style="margin-top: 1em">How would we go about building this?</p>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Enter ListPromise</h2>
+<pre>ListPromise extends Promise {
+    then(...):ListPromise
+    
+    map(...):ListPromise
+    sort(...):ListPromise
+    reverse(...):ListPromise
+    filter(...):ListPromise
+    // and so on...
+}</pre>
+
+<pre class="slide">Promise.prototype.list = function() {
+    this.then(function(result) {
+        return ListPromise(function(fulfill) {
+            fulfill(result);
+        });
+    });
+};</pre>
+</section>
+
+
+<!-- End slides. -->
+
+
+<!-- Begin extension snippets. Add or remove as needed. -->
+
+<!-- deck.navigation snippet -->
+<a href="#" class="deck-prev-link" title="Previous">&#8592;</a>
+<a href="#" class="deck-next-link" title="Next">&#8594;</a>
+
+<!-- deck.status snippet -->
+<p class="deck-status">
+	<span class="deck-status-current"></span>
+	/
+	<span class="deck-status-total"></span>
+</p>
+
+<!-- deck.goto snippet -->
+<form action="." method="get" class="goto-form">
+	<label for="goto-slide">Go to slide:</label>
+	<input type="text" name="slidenum" id="goto-slide" list="goto-datalist">
+	<datalist id="goto-datalist"></datalist>
+	<input type="submit" value="Go">
+</form>
+
+<!-- deck.hash snippet -->
+<a href="." title="Permalink to this slide" class="deck-permalink">#</a>
+
+<!-- End extension snippets. -->
+
+
+<!-- Required JS files. -->
+<script src="../deckjs/jquery-1.7.2.min.js"></script>
+<script src="../deckjs/core/deck.core.js"></script>
+<script src="../deckjs/extensions/codemirror/codemirror.js"></script>
+
+<!-- Extension JS files. Add or remove as needed. -->
+<script src="../deckjs/core/deck.core.js"></script>
+<script src="../deckjs/extensions/hash/deck.hash.js"></script>
+<script src="../deckjs/extensions/menu/deck.menu.js"></script>
+<script src="../deckjs/extensions/goto/deck.goto.js"></script>
+<script src="../deckjs/extensions/status/deck.status.js"></script>
+<script src="../deckjs/extensions/navigation/deck.navigation.js"></script>
+<script src="../deckjs/extensions/scale/deck.scale.js"></script>
+
+<script src="../deckjs/extensions/codemirror/deck.codemirror.js"></script>
+<script src="../deckjs/extensions/codemirror/mode/javascript/javascript.js"></script>
+
+<script src="./github-data.js"></script>
+<script src="./promise.js"></script>
+
+
+<!-- Initialize the deck. You can put this in an external file if desired. -->
+<script>
+	$(function() {
+		$.deck('.slide');
+	});
+</script>
+</body>
+</html>
