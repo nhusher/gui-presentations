@@ -551,6 +551,59 @@ map(print);
 };</pre>
 </section>
 
+<section class="slide">
+    <h2>Error handling</h2>
+    <p>What if something bad happens at some point in our promise chain?</p>
+    <div class="slide">
+    <textarea name="code" class="code" mode="javascript">
+// Something has corrupted our beautiful script!
+json('https://api.git&#0;&#0;rdot&#0;memb&#0;').
+list().
+map(print);
+    </textarea>
+    </div>
+    <p class="slide" style="margin-top: 1em"><em>Short answer:</em> nothing!</p>
+    <p class="slide"><em>Longer answer:</em> We can capture errors if we care about them<span class="slide">, but ignore them if we don't.</span></p>
+</section>
+
+<section class="slide">
+    <h2>Error handling</h2>
+    <p>The second argument to <code>then</code> is an error handler:</p>
+    <div class="slide">
+    <textarea name="code" class="code" mode="javascript">
+json('https://api.git&#0;&#0;rdot&#0;memb&#0;').
+
+then(print, function(error) {
+    console.error(error);
+});
+    </textarea>
+    </div>
+</section>
+<section class="slide">
+<h2>Error handling</h2>
+<p>An error raised at any point will propagate to the end:</p>
+
+<div class="slide">
+    <textarea name="code" class="code" mode="javascript">
+json('https://api.git&#0;&#0;rdot&#0;memb&#0;'). // An error raised here
+
+list().
+
+map(getEachUsersInfo).
+
+then(print, function(error) { // Will be handled here
+    console.error(error);
+});
+    </textarea>
+</div>
+<p class="slide" style="margin-top: 1em">Both exceptions and rejected promises are caught in this way.</p>
+
+</section>
+
+<section class="slide">
+    <h2>The End</h2>
+    
+</section>
 
 <!-- End slides. -->
 
