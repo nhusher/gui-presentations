@@ -184,6 +184,7 @@ Promise(getListOfUsers).     // Get users from github that are associated with D
         return githubUserData;
     }
 </script>
+<p>Let's look at how we start a promise chain:</p>
 
 <textarea id="expand-promise-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
 Promise(function (fulfill) { // getListOfUsers
@@ -249,6 +250,8 @@ then(printToConsole);
 </script>
 
 <p>This one is rough. Don't sweat it too much.</p>
+
+<p>Loops over the members of the Dealer.com org and gets their info. Resolves when all info is retrieved.</p>
 
 <textarea id="expand-chain-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
 Promise(getListOfUsers).
@@ -357,7 +360,9 @@ then(printToConsole);
 function json(url) {
     return Promise(function (fulfill, reject) {
         ajax(url, function (errors, result) {
-            errors ? reject(errors) : fulfill(JSON.parse(result.responseText));
+            errors ?
+                reject(errors) :
+                fulfill(JSON.parse(result.responseText));
         });
     });
 }
