@@ -596,13 +596,97 @@ then(print, function(error) { // Will be handled here
 });
     </textarea>
 </div>
-<p class="slide" style="margin-top: 1em">Both exceptions and rejected promises are caught in this way.</p>
+<p class="slide" style="margin-top: 1em">Uncaught exceptions and rejected promises are caught in this way.</p>
 
 </section>
 
 <section class="slide">
     <h2>The End</h2>
+    <p>Some useful resources</p>
+    <ul>
+        <li class="slide">James Coglan: <a href="http://blog.jcoglan.com/2013/03/30/callbacks-are-imperative-promises-are-functional-nodes-biggest-missed-opportunity/">Callbacks are imperative, promises are functional</a></li>
+        <li class="slide"><a href="https://github.com/nhusher/gui-presentations">Slides</a> (github repo)</li>
+        <li class="slide">Crockford: <a href="http://www.youtube.com/watch?v=dkZFtimgAcM">Monads and Gonads</a></li>
+        <li class="slide"><a href="http://yuilibrary.com/yui/docs/promise/">YUI3 Promise user docs</a></li>
+        <li class="slide"><a href="https://github.com/promises-aplus/promises-spec">Promises/A+ specification</a></li>
+    </ul>
+</section>
+
+<section class="slide">
+    <h2>Coda: Implementation</h2>
     
+<div style="height: 25em; overflow: auto">
+    <textarea name="code" class="code" mode="javascript">
+function Promise (fn) {
+    var callbacks = [],
+        errbacks  = [],
+        result    = null,
+        status    = 'pending';
+
+    if(!(this instanceof Promise)) {
+        return new Promise(fn);
+    }
+
+    var self = this;
+
+    function wrap(callback, errback, fn) { /* ... */ }
+    // Asynchronizes any promise listeners
+
+    function fulfill(val) { /* ... */ }
+    // Passed to the promise resolver function
+    // and called when the promise is resolved.
+    
+    function reject(reason) { /* ... */ }
+    // Also passed to the promise resolver function
+    // and called when the promise is rejected.
+
+    this.then = function(cb, eb) {
+        var thenFulfill,
+            thenReject,
+            
+            // Use "this.constructor" to enable many types of promises:
+            then = new this.constructor(function (fulfill, reject) {
+                thenFulfill = fulfill;
+                thenReject = reject;
+            });
+
+        callbacks.push(typeof cb === 'function' ?
+                            wrap(thenFulfill, thenReject, cb) :
+                            thenFulfill);
+
+        errbacks.push (typeof eb === 'function' ?
+                            wrap(thenFulfill, thenReject, eb) :
+                            thenReject);
+
+        if(status === 'fulfilled') {
+            fulfill(result);
+        } else if(status === 'rejected') {
+            reject(result);
+        }
+
+        return then;
+    };
+
+    fn.call(this, fulfill, reject);
+}
+    </textarea>
+</div>
+</section>
+
+<section class="slide">
+    <h2>Coda: Generators</h2>
+    
+    <textarea name="code" class="code" mode="javascript">
+task(function* () {
+    var members = yield json('https://api.github.com/orgs/dealerdotcom/members');
+
+    var memberData = yield members.map(function(member) {
+        return json('https://api.github.com/users/' + member.login);
+    });
+
+    memberData.forEach(print);
+});
+    </textarea>
 </section>
 
 <!-- End slides. -->
