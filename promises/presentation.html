@@ -334,7 +334,7 @@ then(printToConsole);
 <h2>Promises + Composition = &#10084;</h2>
 <p class="slide">A few general-use functions will make things much cleaner.</p>
 <div class="slide">
-<p>A preview of what we'll end up with by adding two functions, <code>json</code> and <code>batch</code>:</p>
+<p><code>json</code> and <code>batch</code>:</p>
 
 <textarea name="code" class="code" mode="javascript">
 // Get the list of users in the dealer.com org
@@ -359,20 +359,17 @@ then(printToConsole);
 
 <section class="slide">
 <h2><code>json</code></h2>
-<p><a href="http://esc.nickol.us/item/24702" target="_blank">Eve online ship viewer</a></p>
+<p>Example: <a href="http://esc.nickol.us/item/24702" target="_blank">eve online ship viewer</a></p>
 <textarea name="code" id="json-example" class="code" mode="javascript" runnable="true" globals="Promise, ajax">
 // json wraps the ajax function and resolves with some JSON data.
 function json(url) {
-    return Promise(function (fulfill, reject) {
+    return Promise(function (fulfill) {
         ajax(url, function (errors, result) {
-            errors ?
-                reject(errors) :
-                fulfill(JSON.parse(result.responseText));
+            fulfill(JSON.parse(result.responseText));
         });
     });
 }
 
-// Example: eve-ship-comparator
 json("http://esc.nickol.us/api/item/24702").then(function (item) {
     console.log(item.name + ': ' + item.description);
 });
@@ -394,19 +391,19 @@ function json(url) {
 </script>
 <textarea name="code" id="batch-example" class="code" mode="javascript" runnable="true" globals="Promise, ajax">
 function batch(promises) {
-    return Promise(function (fulfill, reject) {
+    return Promise(function (fulfill) {
         var leftToResolve = promises.length,
-            resultList = [];
+            results = new Array(promises.length);
             
         promises.forEach(function (promise, index) {
             promise.then(function (result) {
-                resultList[index] = result;
+                results[index] = result;
                 leftToResolve -= 1;
                 if(leftToResolve === 0) {
                     // All the promises have resolved
-                    fulfill(resultList);
+                    fulfill(results);
                 }
-            }, reject);
+            });
         });
     });
 }
@@ -417,7 +414,7 @@ batch([
     json("http://esc.nickol.us/api/item/24700")
 
 ]).then(function (results) {
-    console.log('Found', results[0].name, 'and', results[1].name);
+    console.log('Found', results.map(function(r) { return r.name; }));
 });
 </textarea>
 
@@ -511,8 +508,8 @@ then(printToConsole);
     <p>
         How can we make it clearer what our intent is?
     </p>
-    <p class="slide">
-        And reduce the amount of code we have to reason about?
+    <p>
+        How can we reduce the amount of code we have to reason about?
     </p>
     
     <div class="slide">
@@ -579,7 +576,7 @@ map(print);
 json('https://api.git&#0;&#0;rdot&#0;memb&#0;').
 
 then(print, function(error) {
-    console.error(error);
+    console.error(error); // Report an error to the console.
 });
     </textarea>
     </div>
@@ -614,6 +611,8 @@ then(print, function(error) { // Will be handled here
         <li class="slide">Crockford: <a href="http://www.youtube.com/watch?v=dkZFtimgAcM">Monads and Gonads</a></li>
         <li class="slide"><a href="http://yuilibrary.com/yui/docs/promise/">YUI3 Promise user docs</a></li>
         <li class="slide"><a href="https://github.com/promises-aplus/promises-spec">Promises/A+ specification</a></li>
+        <li class="slide">Slides written in <a href="http://imakewebthings.com/deck.js/">deck.js</a> with the <a href="https://github.com/iros/deck.js-codemirror">deck.js CodeMirror</a> plugin</li>
+
     </ul>
 </section>
 
