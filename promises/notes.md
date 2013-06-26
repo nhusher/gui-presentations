@@ -1,4 +1,3 @@
-
 ## Promises, Promises
 
 -- Promises. What they are, how they can make your life better.
@@ -57,86 +56,398 @@
 
 * An object with a method `then`
 -- That's it. Well, almost.
-<< REST >>
 -- If you're confused, let's look at some code and we can figure this out together.
 
-### Example: Github activity
+<<<<<<< Local Changes
+### Code
+=======
+### Code
 
--- You can see from the first request that we get a lot of data. What if we want to find out how many repos or gists each user has?
--- We have to query each user's profile separately. Lame.
+    Promise(getListOfUsers).then(getEachUsersInfo).then(sortAlphabetically).then(printToConsole);
+>>>>>>> External Changes
 
-(2)
+<<<<<<< Local Changes
+    Promise(getListOfUsers).then(getEachUsersInfo).then(sortAlphabetically).then(printToConsole);
+=======
+-- I'm going to unpack each step of the chain in reverse order, but here's the high level of what's going on:
+>>>>>>> External Changes
 
--- At a high level, these are the steps we want to complete:
----- Get a list of all the users
----- Then get each user's info
----- Then print it to the console.
+<<<<<<< Local Changes
+<<<<<<< Local Changes
+### Generators
+=======
+-- I'm going to unpack each step of the chain in reverse order, but here's the high level of what's going on:
+>>>>>>> External Changes
 
--- With callback-centric code, it's not easy to do this simply. Remember what I said about intent?
--- Let's run this to see what we get back.
--- Some interesting activity. I'm a bit of an outlier: I *love* gists.
--- Let's tear this apart piece-by-piece.
+<<<<<<< Local Changes
+-- nodejs 0.11.x with --harmony flag
+-- 
+=======
+    Promise(getListOfUsers).      // Get users from github that are associated with Dealer.com.
+        then(getEachUsersInfo).   // Retrieve each user's profile from github.
+        then(sortAlphabetically). // Sort the users by name.
+        then(printToConsole);     // Print out some information about them.
 
-(3)
+-- Unpacking the last handler:
 
--- I wrote a simple wrapper for XMLHttpRequest so we don't have to stare at the guts of a terrible browser API.
--- The important thing here is that getEachUsersInfo doesn't execute until the fulfill method is called on line 10.
--- Whatever you pass to fulfill, will be passed to the next "then" function.
+    Promise(getListOfUsers).
+        then(getEachUsersInfo).
+        then(sortAlphabetically).
+        
+        // printToConsole:
+        then(function (userList) {
+            userList.forEach(function (user) {
+                log(user.name || user.login);
+                log('  Gists:', user.public_gists);
+                log('  Repos:', user.public_repos);
+            });
+        });
+        
+-- The callback here takes a user list, and just prints out some select data in that list. We see the user name and hwo many gists and repos they have.
+-- So that's what a promise handler might look like.
+-- But how did we get that user list? Let's expand another.
 
-(4)
+    Promise(getListOfUsers).
+        then(getEachUsersInfo).
+        
+        // sortAlphabetically:
+        then(function (unsortedUserList) {
 
--- If we remember back from the beginning -- if a then function returns a promise, the chain won't continue to resolve until that promise resolved.
--- Here, we return a promise that wraps over a bunch of ajax requests we make to get each user's info.
--- When we're done, we call fulfill, and the result is passed to printToConsole
+            var sortedUserList = unsortedUserList.sort(function (a, b) {
+                var aName = (a.name || a.login).toLowerCase(),
+                    bName = (b.name || b.login).toLowerCase();
+                
+                return (aName < bName) ? 1 : -1;
+            });
+            
+            return sortedUserList; // pass this on to the next handler
+        }).
+        then(printToConsole);
 
-(5)
+-- That's pretty straightforward. We get an unsorted list from getEachUsersInfo, however it works, and we sort each element alphabetically. We return the sorted array, which is passed to printToConsole. Cool.
 
--- And that's everything together.
+-- How do we get each user's info, though? Let's skip over that for a second and get right to the root:
 
-### Good Job Nick
+    Promise(function(fulfill, reject) {
 
--- Not that great, right? It's just as bad as doing it the old way.
--- But I'm not wasting your time, I promise. har har.
+            // see: http://developer.github.com/v3/orgs/members/
+            // the get function makes an http request and returns the json response
+            get('https://api.github.com/orgs/dealerdotcom/members', function (errors, result) {
+                if(errors) {
+                    reject(errors); // something bad happened!
+                    return;
+                }
+            
+                fulfill(result);
+            });
 
-### Promises + Composition
+        }).
+        then(getEachUsersInfo).
+        then(sortAlphabetically).
+        then(sortAlphabetically).
+        then(printToConsole);
 
--- Every promise exposes the same contract, and they're chainable.
--- You can write a few general purpose functions and snap them together.
--- Most of the code I've shown you is syntactic trash: it's boilerplate code to munge data through a pipeline
--- Introducing, json and batch: two simple promises that makes 30 lines turn into 7.
+-- The promise handler is handed two resolver methods, fulfill and reject. Fulfill says, "hey, I was successful and here's the result," and reject says the opposite. Whatever value you fulfill with will be passed to the next method in the promise chain.
+-- Now let's dig into that getEachUsersInfo method, because there's a lot going on there:
 
-### json
+    Promise(getListOfUsers).
+        then(function(membersOfDealerDotCom) {
+            return Promise(function(fulfill, reject) {
+                var remainingUsers = membersOfDealerDotCom.length,
+                    unsortedUserList = [];
 
--- I wrote a simple viewer for Eve Online data.
--- json takes a url and returns a promise that will resolve when we get JSON data back
--- We get back the name and description in markdown
+                membersOfDealerDotCom.forEach(function(member) {
+                    get('https://api.github.com/users/' + member.login, function(errors, result) {
+                        unsortedUserList.push(result);
+                        remainingUsers -= 1;
+                
+                        if(remainingUsers === 0) {
+                            fulfill(unsortedUserList);
+                        }
+                    });
+                });
+            });
+        }).
+        then(sortAlphabetically).
+        then(printToConsole);
+    
+-- Wow. Okay, let's look this over. First, we're returning a promise. This means that functions further down the chain are now waiting on this to be returned. 
+-- Then, for each member we found, we go out and get the user data JSON and toss it into a list.
+-- When all of the users have been resolved, we call the fulfill function and continue the promise chain.
+-- That's pretty complicated, and might make you wonder what the point this promises stuff is.
 
-### batch
+### Promises + Composition = <3
 
--- This is where things get a little interesting.
--- batch takes an array of promises and resolves when all of those promises have resolved.
--- generates an array and writes the data into that array as the promises resolve
--- when all are resolved, it fulfills against the array of results
--- and you can see below, we just snap some json promise functions in there
+-- Promises love composition. It's trivially easy to build a new promise-wrapped function that plugs into every other promise seamlessly.
+-- At their root, promises only know about two data types: promises, and everything else.
+-- Remember, any time you return a promise from a "then" function, the chain waits on that promise to resolve.
+-- Otherwise, it just works like a simple pipeline.
+-- Let's grab that previous example and think how we can make it smarter:
 
-### Example: Github activity
+    Promise(function(fulfill, reject) {
 
--- We've improved our toolbox, and now we can run the simplified code.
+            // see: http://developer.github.com/v3/orgs/members/
+            // the get function makes an http request and returns the json response
+            get('https://api.github.com/orgs/dealerdotcom/members', function (errors, result) {
+                if(errors) {
+                    reject(errors); // something bad happened!
+                    return;
+                }
+        
+                fulfill(result);
+            });
 
-### The next step...
+        }).
+        then(function(membersOfDealerDotCom) {
+            return Promise(function(fulfill, reject) {
+                var remainingUsers = membersOfDealerDotCom.length,
+                    unsortedUserList = [];
 
--- There's more we can do, though.
--- Calling Promise.then gets really tiresome after a while
--- What if we know the response we will get back is a list. Or list like?
--- If we could operate on the promise like we would on a list, it would make our code simpler.
+                membersOfDealerDotCom.forEach(function(member) {
+                    get('https://api.github.com/users/' + member.login, function(errors, result) {
+                        unsortedUserList.push(result);
+                        remainingUsers -= 1;
+                
+                        if(remainingUsers === 0) {
+                            fulfill(unsortedUserList);
+                        }
+                    });
+                });
+            });
+        }).
+        then(sortAlphabetically).
+        then(printToConsole);
 
-### Enter ListPromise
+-- Yuck. There's so much syntactical garbage, the intent isn't clear. Let's throw that out, there's no saving it.
+-- But what if we wrapped our get function so that it returned a promise...
 
--- I'm not going to provide an implementation, except to say that there is one, and it's very simple.
--- Syntax here is based off of TypeScript
--- ListPromise should have the same contract as Promise, but chain a ListPromise
--- It should also have array operations like map, reduce, sort, filter, etc.
--- And we should extend the regular Promise with a "toList" method.
+    function json(url) {
+        return Promise(function(fulfill, reject) {
+            get(url, function(errors, result) {
+                errors ? reject(errors) : fulfill(result);
+            });
+        });
+    }
+    
+-- Now we have a general purpose "JSON getter" promise. You give it a URL, and it resolves when it receives JSON.
+-- And what if we could simplify all that iteration trash in the getEachUsersInfo by using promises?
 
+    function collect(promises) {
+        return Promise(function(fulfill, reject) {
+            var leftToResolve = promises.length,
+                resultList = [];
+            
+            promises.forEach(function(promise, index) {
+                promise.then(function(result) {
+                    resultList[i] = result;
+                    leftToResolve -= 1;
+                    
+                    if(leftToResolve === 0) {
+                        fulfill(resultList); // All the promises have resolved
+                    }
+                }, reject);
+            });
+        });
+    }
+    
+-- That's a little more complex, but collect takes an array of promises and waits for them all to resolve.
+-- When they do, it resolves with the results.
+-- Now we have two general-purpose promise tools, json, which gets json from some server. And collect, which boxes up a bunch of promises and returns a wrapper round all of them.
+-- Let's recombine this with the previous example...
 
+    json('https://api.github.com/orgs/dealerdotcom/members').
+    then(function(membersOfDealerDotCom) {
+        return collect(membersOfDealerDotCom.map(function(member) {
+            return json('https://api.github.com/users/' + member.login);
+        }));
+    }).
+    then(sortAlphabetically).
+    then(printToConsole);
+    
+-- For reals? That works? Totally does.
+=======
+    Promise(getListOfUsers).      // Get users from github that are associated with Dealer.com.
+        then(getEachUsersInfo).   // Retrieve each user's profile from github.
+        then(sortAlphabetically). // Sort the users by name.
+        then(printToConsole);     // Print out some information about them.
 
+-- Unpacking the last handler:
+
+    Promise(getListOfUsers).
+        then(getEachUsersInfo).
+        then(sortAlphabetically).
+        
+        // printToConsole:
+        then(function (userList) {
+            userList.forEach(function (user) {
+                log(user.name || user.login);
+                log('  Gists:', user.public_gists);
+                log('  Repos:', user.public_repos);
+            });
+        });
+        
+-- The callback here takes a user list, and just prints out some select data in that list. We see the user name and hwo many gists and repos they have.
+-- So that's what a promise handler might look like.
+-- But how did we get that user list? Let's expand another.
+
+    Promise(getListOfUsers).
+        then(getEachUsersInfo).
+        
+        // sortAlphabetically:
+        then(function (unsortedUserList) {
+
+            var sortedUserList = unsortedUserList.sort(function (a, b) {
+                var aName = (a.name || a.login).toLowerCase(),
+                    bName = (b.name || b.login).toLowerCase();
+                
+                return (aName < bName) ? 1 : -1;
+            });
+            
+            return sortedUserList; // pass this on to the next handler
+        }).
+        then(printToConsole);
+
+-- That's pretty straightforward. We get an unsorted list from getEachUsersInfo, however it works, and we sort each element alphabetically. We return the sorted array, which is passed to printToConsole. Cool.
+
+-- How do we get each user's info, though? Let's skip over that for a second and get right to the root:
+
+    Promise(function(fulfill, reject) {
+
+            // see: http://developer.github.com/v3/orgs/members/
+            // the get function makes an http request and returns the json response
+            get('https://api.github.com/orgs/dealerdotcom/members', function (errors, result) {
+                if(errors) {
+                    reject(errors); // something bad happened!
+                    return;
+                }
+            
+                fulfill(result);
+            });
+
+        }).
+        then(getEachUsersInfo).
+        then(sortAlphabetically).
+        then(sortAlphabetically).
+        then(printToConsole);
+
+-- The promise handler is handed two resolver methods, fulfill and reject. Fulfill says, "hey, I was successful and here's the result," and reject says the opposite. Whatever value you fulfill with will be passed to the next method in the promise chain.
+-- Now let's dig into that getEachUsersInfo method, because there's a lot going on there:
+
+    Promise(getListOfUsers).
+        then(function(membersOfDealerDotCom) {
+            return Promise(function(fulfill, reject) {
+                var remainingUsers = membersOfDealerDotCom.length,
+                    unsortedUserList = [];
+
+                membersOfDealerDotCom.forEach(function(member) {
+                    get('https://api.github.com/users/' + member.login, function(errors, result) {
+                        unsortedUserList.push(result);
+                        remainingUsers -= 1;
+                
+                        if(remainingUsers === 0) {
+                            fulfill(unsortedUserList);
+                        }
+                    });
+                });
+            });
+        }).
+        then(sortAlphabetically).
+        then(printToConsole);
+    
+-- Wow. Okay, let's look this over. First, we're returning a promise. This means that functions further down the chain are now waiting on this to be returned. 
+-- Then, for each member we found, we go out and get the user data JSON and toss it into a list.
+-- When all of the users have been resolved, we call the fulfill function and continue the promise chain.
+-- That's pretty complicated, and might make you wonder what the point this promises stuff is.
+
+### Promises + Composition = <3
+
+-- Promises love composition. It's trivially easy to build a new promise-wrapped function that plugs into every other promise seamlessly.
+-- At their root, promises only know about two data types: promises, and everything else.
+-- Remember, any time you return a promise from a "then" function, the chain waits on that promise to resolve.
+-- Otherwise, it just works like a simple pipeline.
+-- Let's grab that previous example and think how we can make it smarter:
+
+    Promise(function(fulfill, reject) {
+
+            // see: http://developer.github.com/v3/orgs/members/
+            // the get function makes an http request and returns the json response
+            get('https://api.github.com/orgs/dealerdotcom/members', function (errors, result) {
+                if(errors) {
+                    reject(errors); // something bad happened!
+                    return;
+                }
+        
+                fulfill(result);
+            });
+
+        }).
+        then(function(membersOfDealerDotCom) {
+            return Promise(function(fulfill, reject) {
+                var remainingUsers = membersOfDealerDotCom.length,
+                    unsortedUserList = [];
+
+                membersOfDealerDotCom.forEach(function(member) {
+                    get('https://api.github.com/users/' + member.login, function(errors, result) {
+                        unsortedUserList.push(result);
+                        remainingUsers -= 1;
+                
+                        if(remainingUsers === 0) {
+                            fulfill(unsortedUserList);
+                        }
+                    });
+                });
+            });
+        }).
+        then(sortAlphabetically).
+        then(printToConsole);
+
+-- Yuck. There's so much syntactical garbage, the intent isn't clear. Let's throw that out, there's no saving it.
+-- But what if we wrapped our get function so that it returned a promise...
+
+    function json(url) {
+        return Promise(function(fulfill, reject) {
+            get(url, function(errors, result) {
+                errors ? reject(errors) : fulfill(result);
+            });
+        });
+    }
+    
+-- Now we have a general purpose "JSON getter" promise. You give it a URL, and it resolves when it receives JSON.
+-- And what if we could simplify all that iteration trash in the getEachUsersInfo by using promises?
+
+    function collect(promises) {
+        return Promise(function(fulfill, reject) {
+            var leftToResolve = promises.length,
+                resultList = [];
+            
+            promises.forEach(function(promise, index) {
+                promise.then(function(result) {
+                    resultList[i] = result;
+                    leftToResolve -= 1;
+                    
+                    if(leftToResolve === 0) {
+                        fulfill(resultList); // All the promises have resolved
+                    }
+                }, reject);
+            });
+        });
+    }
+    
+-- That's a little more complex, but collect takes an array of promises and waits for them all to resolve.
+-- When they do, it resolves with the results.
+-- Now we have two general-purpose promise tools, json, which gets json from some server. And collect, which boxes up a bunch of promises and returns a wrapper round all of them.
+-- Let's recombine this with the previous example...
+
+    json('https://api.github.com/orgs/dealerdotcom/members').
+    then(function(membersOfDealerDotCom) {
+        return collect(membersOfDealerDotCom.map(function(member) {
+            return json('https://api.github.com/users/' + member.login);
+        }));
+    }).
+    then(sortAlphabetically).
+    then(printToConsole);
+    
+-- For reals? That works? Totally does.
+>>>>>>> External Changes
+
+>>>>>>> External Changes
