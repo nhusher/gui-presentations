@@ -37,11 +37,15 @@
 </section>
 
 <section class="slide">
+    <h1>Why?</h1>
+</section>
+
+<section class="slide">
 <h2>What's a promise?</h2>
 
 <ul>
     <li class="slide">A wrapper around an asynchronously-generated value.</li>
-    <li class="slide">A tool to make deeply-asynchronous programming less painful.</li>
+    <li class="slide">A tool to make callback programming less painful.</li>
     <li class="slide">Plumbing that makes it easier to express your program's <strong>intent</strong>.</li>
     <li class="slide">
         Object Oriented Programming : Functional Programming :: Events : Promises
@@ -68,28 +72,26 @@
     <li class="slide">Where <code>then</code> takes a callback</li>
     <li class="slide">And returns a promise <span class="slide">that will resolve after the callback function is executed <span class="slide">with the results of the callback function.</span></span></li>
     <li class="slide">
-        But <span class="slide">if the callback function returns a promise <span class="slide">the subsequent callbacks won't be resolved until that promise is resolved.</span></span>
+        But <span class="slide">if the callback function passed to <code>then</code> returns a promise <span class="slide">the subsequent methods in the chain won't be resolved until that promise is resolved.</span></span>
     </li>
-    <li class="slide">Easy, right?</li>
 </ul>
 
 </section>
 
 <section class="slide">
-    <h1><img src="http://i.imgur.com/sdLEY.gif"></h1    >
-</section>
 
-<section class="slide">
-
-<h2>What about an example?</h2>
+<h2>Example: Github activity</h2>
 
 <p class="slide">
     Let's try to find out how active earthlings are on github.
 </p>
-<p class="slide">Turns out, Dealer.com has a <a href="https://github.com/DealerDotCom">github organization</a>, although there aren't very many DDC members.
+<p class="slide">Turns out, Dealer.com has a <a target="_blank" href="https://github.com/DealerDotCom">github organization</a>, although there aren't very many DDC members.
 </p>
 <p class="slide">But let's see what we can find out anyway.</p>
-
+<ul class="slide">
+    <li>Sample: <a target="_blank" href="https://api.github.com/orgs/dealerdotcom/members">Member list json</a></li>
+    <li>Sample: <a target="_blank" href="https://api.github.com/users/founddrama">User info</a></li>
+</p>
 </section>
 
 <section class="slide">
@@ -139,7 +141,7 @@ function getEachUsersInfo() {
 </script>
     
 <textarea id="simple-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
-Promise(getListOfUsers).     // Get users from github that are associated with Dealer.com.
+Promise(getListOfUsers).     // Get users from github associated with Dealer.com.
    then(getEachUsersInfo).   // Retrieve each user's profile from github.
    then(printToConsole);     // Print out some information about them.
 </textarea>
@@ -255,6 +257,7 @@ then(printToConsole);
 
 <textarea id="expand-chain-example" name="code" class="code" mode="javascript" runnable="true" globals="Promise, githubUserData">
 Promise(getListOfUsers).
+
 then(function (members) { // getEachUsersInfo
     return Promise(function (fulfill) {
         var remainingUsers = members.length,
@@ -276,6 +279,7 @@ then(function (members) { // getEachUsersInfo
         });
     });
 }).
+
 then(printToConsole);
 </textarea>
 </section>
@@ -329,9 +333,9 @@ then(printToConsole);
 <section class="slide">
 <h2>Promises + Composition = &#10084;</h2>
 <p class="slide">A few general-use functions will make things much cleaner.</p>
-<p class="slide">A preview of what we'll end up with by adding two functions, <code>json</code> and <code>batch</code>:</p>
-
 <div class="slide">
+<p>A preview of what we'll end up with by adding two functions, <code>json</code> and <code>batch</code>:</p>
+
 <textarea name="code" class="code" mode="javascript">
 // Get the list of users in the dealer.com org
 json('https://api.github.com/orgs/dealerdotcom/members').
@@ -355,6 +359,7 @@ then(printToConsole);
 
 <section class="slide">
 <h2><code>json</code></h2>
+<p><a href="http://esc.nickol.us/item/24702" target="_blank">Eve online ship viewer</a></p>
 <textarea name="code" id="json-example" class="code" mode="javascript" runnable="true" globals="Promise, ajax">
 // json wraps the ajax function and resolves with some JSON data.
 function json(url) {
@@ -368,7 +373,7 @@ function json(url) {
 }
 
 // Example: eve-ship-comparator
-json("http://esc.nickol.us/api/item/24698").then(function (item) {
+json("http://esc.nickol.us/api/item/24702").then(function (item) {
     console.log(item.name + ': ' + item.description);
 });
 </textarea>
